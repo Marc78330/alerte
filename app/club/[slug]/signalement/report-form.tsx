@@ -45,7 +45,11 @@ type Props = {
   categories: CategoryOption[];
 };
 
-const STEPS = ["Discrétion", "Faits", "Récit"];
+const STEPS = [
+  { n: "01", label: "Discrétion" },
+  { n: "02", label: "Faits" },
+  { n: "03", label: "Récit" },
+];
 
 function darken(hex: string, factor: number): string {
   const n = parseInt(hex.replace("#", ""), 16);
@@ -55,20 +59,20 @@ function darken(hex: string, factor: number): string {
   return `rgb(${r} ${g} ${b})`;
 }
 
-function categoryIcon(key: string) {
+function categoryStyle(key: string) {
   switch (key) {
     case "HARCELEMENT":
-      return Megaphone;
+      return { icon: Megaphone, bg: "#fef3c7", fg: "#b45309" };
     case "CYBER":
-      return Laptop;
+      return { icon: Laptop, bg: "#ede9fe", fg: "#6d28d9" };
     case "VIOLENCE_PHYSIQUE":
-      return ShieldAlert;
+      return { icon: ShieldAlert, bg: "#fee2e2", fg: "#b91c1c" };
     case "SEXISME_SEXUEL":
-      return HeartCrack;
+      return { icon: HeartCrack, bg: "#fce7f3", fg: "#be185d" };
     case "DISCRIMINATION":
-      return Users;
+      return { icon: Users, bg: "#dbeafe", fg: "#1d4ed8" };
     default:
-      return ShieldAlert;
+      return { icon: ShieldAlert, bg: "#e2e8f0", fg: "#475569" };
   }
 }
 
@@ -119,6 +123,7 @@ export function ReportForm({
   );
   const [reporterRole, setReporterRole] = useState("");
   const [categoryKey, setCategoryKey] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
   const [isMinorVictim, setIsMinorVictim] = useState(false);
   const [reporterName, setReporterName] = useState("");
   const [reporterContact, setReporterContact] = useState("");
@@ -148,7 +153,12 @@ export function ReportForm({
     step === 0
       ? true
       : step === 1
-        ? Boolean(reporterRole && categoryKey)
+        ? Boolean(
+            reporterRole &&
+              (categoryKey
+                ? categoryKey !== "__AUTRE__" || customCategory.trim().length >= 3
+                : false),
+          )
         : description.trim().length >= 40;
 
   const descProgress = Math.min(100, Math.round((description.trim().length / 40) * 100));
@@ -173,7 +183,8 @@ export function ReportForm({
     fd.set("isAnonymous", String(anonymity === "ANONYME"));
     fd.set("allowAnonymousFlag", String(allowAnonymous));
     fd.set("reporterRole", reporterRole);
-    fd.set("categoryKey", categoryKey);
+    fd.set("categoryKey", categoryKey === "__AUTRE__" ? "__AUTRE__" : categoryKey);
+    fd.set("customCategory", customCategory);
     fd.set("isMinorVictim", String(isMinorVictim));
     fd.set("reporterName", reporterName);
     fd.set("reporterContact", reporterContact);
@@ -194,29 +205,42 @@ export function ReportForm({
     setStep(3);
   }
 
+  const inputCls =
+    "w-full rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-club focus:bg-white focus:outline-none focus:ring-2 focus:ring-club/20";
+
   if (result && result.ok) {
     return (
       <section
-        className="animate-fade-up rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8"
+        className="animate-fade-up overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60"
         style={cssVars}
       >
-        <div className="flex flex-col items-center text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-            <CheckCircle2 className="h-9 w-9 text-emerald-600" />
+        <div className="relative overflow-hidden px-6 py-10 text-center sm:px-10">
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage: `radial-gradient(28rem 14rem at 50% 0%, ${primaryColor}22, transparent 70%)`,
+            }}
+          />
+          <div className="relative flex flex-col items-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 shadow-lg shadow-emerald-200/50">
+              <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+            </div>
+            <h2 className="mt-5 text-2xl font-extrabold tracking-tight text-slate-900">
+              C&apos;est fait, merci.
+            </h2>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-600">
+              Le bureau de <b>{clubName}</b> a bien reçu votre signalement et s&apos;engage à
+              y répondre sous 7 jours. Grâce au code ci-dessous, suivez l&apos;instruction
+              <b> sans révéler votre identité</b>.
+            </p>
           </div>
-          <h2 className="mt-5 text-2xl font-bold text-slate-900">Signalement transmis</h2>
-          <p className="mt-2 max-w-md text-sm text-slate-600">
-            Le bureau de <b>{clubName}</b> a bien reçu votre signalement et s&apos;y engage à
-            répondre sous 7 jours. Grâce au code ci-dessous, vous pourrez suivre son
-            instruction <b>sans révéler votre identité</b>.
-          </p>
         </div>
 
-        <div className="mt-6 rounded-2xl bg-slate-100 p-5 text-center">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <div className="mx-5 mb-5 rounded-2xl bg-slate-900 px-6 py-6 text-center text-white sm:mx-10">
+          <p className="text-[11px] font-medium uppercase tracking-[0.25em] text-slate-400">
             Votre code de suivi confidentiel
           </p>
-          <p className="mt-1 font-mono text-2xl font-bold tracking-[0.15em] text-slate-900 sm:text-3xl">
+          <p className="mt-2 font-mono text-2xl font-bold tracking-[0.2em] sm:text-3xl">
             {result.trackingToken}
           </p>
           <button
@@ -225,27 +249,26 @@ export function ReportForm({
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             }}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-2.5 text-sm font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
           >
             {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copié !" : "Copier le code"}
           </button>
         </div>
 
-        <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="mx-5 mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900 sm:mx-10">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
           <p>
-            <b>Important :</b> ce code est votre <b>unique accès</b> à l&apos;espace de suivi
-            et à la conversation avec le club. Conservez-le précieusement (photo, note
-            privée). Si vous le perdez, nous ne pourrons pas le retrouver : aucun lien avec
-            votre identité n&apos;est conservé.
+            <b>Important :</b> ce code est votre <b>unique accès</b> au suivi et à la
+            conversation. Conservez-le précieusement — s&apos;il est perdu, rien ne permet de
+            le retrouver.
           </p>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <div className="mx-5 mb-6 flex flex-col gap-3 sm:mx-10 sm:flex-row">
           <a
             href={`/suivi/${result.trackingToken}`}
-            className="flex items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-semibold text-white shadow transition"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition hover:opacity-90"
             style={{ backgroundColor: "var(--club-primary)" }}
           >
             <Link2 className="h-4 w-4" />
@@ -262,253 +285,390 @@ export function ReportForm({
     );
   }
 
-  const selectedCardClasses =
-    "border-club bg-club-softer shadow-[0_0_0_1px_var(--club-primary)]";
-
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+      className="animate-fade-up overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/60"
       style={cssVars}
     >
-      {/* Étapes */}
-      <div className="border-b border-slate-100 bg-slate-50/60 px-5 py-4 sm:px-8">
-        <ol className="flex items-center gap-2">
-          {STEPS.map((label, i) => (
-            <li key={label} className="flex flex-1 items-center gap-2">
-              <button
-                type="button"
-                disabled={i > step}
-                onClick={() => i < step && setStep(i)}
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
-                  i < step
-                    ? "bg-emerald-500 text-white"
-                    : i === step
-                      ? "text-white shadow-md"
-                      : "bg-slate-200 text-slate-500"
-                } ${i < step ? "cursor-pointer hover:bg-emerald-600" : ""}`}
-                style={i === step ? { backgroundColor: "var(--club-primary)" } : undefined}
-                aria-label={i < step ? `Revenir à l'étape : ${label}` : `Étape ${label}`}
-              >
-                {i < step ? <Check className="h-4 w-4" /> : i + 1}
-              </button>
-              <span
-                className={`hidden text-xs font-semibold sm:block ${
-                  i <= step ? "text-slate-900" : "text-slate-400"
-                }`}
-              >
-                {label}
-              </span>
-              {i < STEPS.length - 1 && (
-                <span
-                  className={`h-0.5 flex-1 rounded-full transition-colors ${
-                    i < step ? "bg-emerald-400" : "bg-slate-200"
+      {/* ===== HEADER ÉTAPES ===== */}
+      <div className="border-b border-slate-100 bg-white px-6 pb-0 pt-6 sm:px-10">
+        <div className="flex items-center gap-2">
+          {STEPS.map((s, i) => {
+            const done = i < step;
+            const active = i === step;
+            return (
+              <div key={s.label} className="flex flex-1 items-center gap-2">
+                <button
+                  type="button"
+                  disabled={!done}
+                  onClick={() => done && setStep(i)}
+                  aria-label={s.label}
+                  className={`flex items-center gap-2 rounded-xl px-1 py-1 transition ${
+                    done ? "cursor-pointer" : "cursor-default"
                   }`}
-                />
-              )}
-            </li>
-          ))}
-        </ol>
-        <p className="mt-3 text-[11px] font-medium uppercase tracking-widest text-slate-400">
-          Étape {step + 1} sur {STEPS.length}
-        </p>
+                >
+                  <span
+                    className={`relative flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : active
+                          ? "animate-step-pop bg-club text-white shadow-md"
+                          : "bg-slate-100 text-slate-400"
+                    }`}
+                    style={
+                      active
+                        ? ({ "--pulse-color": `${primaryColor}66` } as React.CSSProperties)
+                        : undefined
+                    }
+                  >
+                    {done ? (
+                      <Check className="animate-step-pop h-4 w-4" />
+                    ) : active ? (
+                      <span className="animate-soft-pulse">{s.n}</span>
+                    ) : (
+                      s.n
+                    )}
+                  </span>
+                  <span
+                    className={`hidden text-xs font-bold transition sm:block ${
+                      active ? "text-slate-900" : done ? "text-slate-500" : "text-slate-400"
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </button>
+                {i < STEPS.length - 1 && (
+                  <span className="h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
+                    <span
+                      key={done ? "done" : active ? "active" : `wait-${i}`}
+                      className="animate-bar-grow block h-full rounded-full"
+                      style={{
+                        width: done ? "100%" : active ? "50%" : "0%",
+                        backgroundColor: done
+                          ? "#10b981"
+                          : active
+                            ? "var(--club-primary)"
+                            : "#e2e8f0",
+                      }}
+                    />
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="px-5 py-6 sm:px-8 sm:py-8">
+      <div className="px-6 py-8 sm:px-10 sm:py-10">
+        {/* ===== ÉTAPE 1 : DISCRÉTION ===== */}
         {step === 0 && (
-          <div className="animate-fade-up">
-            <h2 className="text-lg font-bold text-slate-900">Comment souhaitez-vous signaler ?</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Ce choix reste totalement confidentiel dans tous les cas.
+          <div key="step-0" className="animate-slide-in">
+            <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900">
+              Choisis ton mode de signalement
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-500">
+              À toi de décider ce qui te met le plus à l&apos;aise. Les deux restent confidentiels.
             </p>
 
-            <div className="mt-5 space-y-4">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              {/* ===== ANONYMAT ===== */}
               <button
                 type="button"
                 onClick={() => allowAnonymous && setAnonymity("ANONYME")}
                 disabled={!allowAnonymous}
-                className={`relative w-full rounded-2xl border-2 p-5 text-left transition ${
+                className={`relative flex flex-col rounded-2xl border-2 p-6 text-left transition ${
                   anonymity === "ANONYME"
-                    ? selectedCardClasses
+                    ? "border-club bg-club-softer shadow-[0_0_0_1px_var(--club-primary)]"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 } ${!allowAnonymous ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
               >
-                <span
-                  className={`absolute right-4 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 transition ${
-                    anonymity === "ANONYME"
-                      ? "border-club bg-club text-white"
-                      : "border-slate-300 bg-white"
-                  }`}
-                >
-                  {anonymity === "ANONYME" && <Check className="h-3.5 w-3.5" />}
-                </span>
-                <div className="flex items-start gap-4 pr-8">
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white shadow-sm"
+                <div className="flex items-center justify-between">
+                  <span
+                    className="flex h-12 w-12 items-center justify-center rounded-xl text-white shadow-lg"
                     style={{ backgroundColor: "var(--club-primary)" }}
                   >
-                    <EyeOff className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Anonymat absolu</p>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                      Aucune information personnelle n&apos;est demandée ni enregistrée. Le
-                      club ne pourra jamais vous identifier, seul l&apos;échange via votre
-                      code de suivi est possible.
-                    </p>
-                  </div>
+                    <EyeOff className="h-6 w-6" />
+                  </span>
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition ${
+                      anonymity === "ANONYME"
+                        ? "border-club bg-club text-white"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {anonymity === "ANONYME" && <Check className="h-4 w-4" />}
+                  </span>
                 </div>
+                <h3 className="mt-5 text-lg font-extrabold tracking-tight text-slate-900">
+                  Anonymat complet
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                  Personne — même le club — ne saura qui tu es.
+                </p>
+                <ul className="mt-5 space-y-2.5 border-t border-slate-200/70 pt-4 text-sm">
+                  {[
+                    { ok: true, t: "Aucune donnée personnelle demandée" },
+                    { ok: true, t: "Le club ne peut pas t'identifier" },
+                    { ok: true, t: "Suivi via ton code privé" },
+                    { ok: false, t: "Le club ne peut pas te recontacter hors du tchat" },
+                    { ok: false, t: "Code perdu = dossier perdu" },
+                  ].map((it) => (
+                    <li key={it.t} className="flex items-start gap-2.5">
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          it.ok ? "bg-emerald-100 text-emerald-600" : "bg-red-50 text-red-400"
+                        }`}
+                      >
+                        {it.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      </span>
+                      <span className={it.ok ? "text-slate-700" : "text-slate-400"}>{it.t}</span>
+                    </li>
+                  ))}
+                </ul>
               </button>
 
+              {/* ===== CONFIDENTIEL ===== */}
               <button
                 type="button"
                 onClick={() => setAnonymity("CONFIDENTIEL")}
-                className={`relative w-full rounded-2xl border-2 p-5 text-left transition ${
+                className={`relative flex flex-col rounded-2xl border-2 p-6 text-left transition ${
                   anonymity === "CONFIDENTIEL"
-                    ? selectedCardClasses
+                    ? "border-club bg-club-softer shadow-[0_0_0_1px_var(--club-primary)]"
                     : "border-slate-200 bg-white hover:border-slate-300"
                 } cursor-pointer`}
               >
-                <span
-                  className={`absolute right-4 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 transition ${
-                    anonymity === "CONFIDENTIEL"
-                      ? "border-club bg-club text-white"
-                      : "border-slate-300 bg-white"
-                  }`}
-                >
-                  {anonymity === "CONFIDENTIEL" && <Check className="h-3.5 w-3.5" />}
-                </span>
-                <div className="flex items-start gap-4 pr-8">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-700 text-white shadow-sm">
-                    <UserRound className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">Identité confidentielle</p>
-                    <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                      Vos nom et coordonnées restent dans un espace privé réservé au
-                      président du club, pour un échange plus direct si nécessaire. Jamais
-                      divulgués.
-                    </p>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 text-white shadow-lg">
+                    <UserRound className="h-6 w-6" />
+                  </span>
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full border-2 transition ${
+                      anonymity === "CONFIDENTIEL"
+                        ? "border-club bg-club text-white"
+                        : "border-slate-300 bg-white"
+                    }`}
+                  >
+                    {anonymity === "CONFIDENTIEL" && <Check className="h-4 w-4" />}
+                  </span>
                 </div>
+                <h3 className="mt-5 text-lg font-extrabold tracking-tight text-slate-900">
+                  Identité confidentielle
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                  Le président du club peut te joindre, sans jamais te dévoiler aux autres.
+                </p>
+                <ul className="mt-5 space-y-2.5 border-t border-slate-200/70 pt-4 text-sm">
+                  {[
+                    { ok: true, t: "Le président peut te recontacter directement" },
+                    { ok: true, t: "Résolution souvent plus rapide" },
+                    { ok: true, t: "Ton identité n'est jamais divulguée" },
+                    { ok: false, t: "Le président connaît ton identité" },
+                    { ok: false, t: "Pour ceux qui sont à l'aise de se dévoiler" },
+                  ].map((it) => (
+                    <li key={it.t} className="flex items-start gap-2.5">
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                          it.ok ? "bg-emerald-100 text-emerald-600" : "bg-red-50 text-red-400"
+                        }`}
+                      >
+                        {it.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      </span>
+                      <span className={it.ok ? "text-slate-700" : "text-slate-400"}>{it.t}</span>
+                    </li>
+                  ))}
+                </ul>
               </button>
             </div>
           </div>
         )}
 
+        {/* ===== ÉTAPE 2 : FAITS ===== */}
         {step === 1 && (
-          <div className="animate-fade-up">
-            <h2 className="text-lg font-bold text-slate-900">Quels sont les faits ?</h2>
-            <p className="mt-1 text-sm text-slate-600">Vous signalez en tant que… (votre rôle)</p>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {REPORTER_ROLES.map((role) => (
-                <button
-                  key={role}
-                  type="button"
-                  onClick={() => setReporterRole(role)}
-                  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
-                    reporterRole === role
-                      ? selectedCardClasses
-                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  {role}
-                </button>
-              ))}
-            </div>
+          <div key="step-1" className="animate-slide-in">
+            <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900">
+              Quels sont les faits&nbsp;?
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-500">
+              Sans pression, au plus près de ce que tu as vécu ou constaté.
+            </p>
 
-            <p className="mt-6 text-sm font-medium text-slate-700">Nature des faits à signaler</p>
-            <div className="mt-3 space-y-3">
-              {categories.map((cat) => {
-                const Icon = categoryIcon(cat.key);
-                const isSelected = categoryKey === cat.key;
-                return (
-                  <label
-                    key={cat.key}
-                    className={`relative flex cursor-pointer gap-4 rounded-2xl border-2 p-4 transition ${
-                      isSelected
-                        ? selectedCardClasses
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+            <div className="mt-8">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                Tu signales en tant que
+              </p>
+              <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {REPORTER_ROLES.map((role) => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => setReporterRole(role)}
+                    className={`rounded-xl border-2 px-3 py-3 text-sm font-semibold transition ${
+                      reporterRole === role
+                        ? "border-club bg-club-softer text-slate-900"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     }`}
                   >
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                Nature des faits
+              </p>
+              <div className="mt-3 space-y-2.5">
+                {categories.map((cat) => {
+                  const { icon: Icon, bg, fg } = categoryStyle(cat.key);
+                  const isSelected = categoryKey === cat.key;
+                  return (
+                    <label
+                      key={cat.key}
+                      className={`flex cursor-pointer items-center gap-4 rounded-2xl border-2 p-4 transition ${
+                        isSelected
+                          ? "border-club bg-club-softer"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="category"
+                        value={cat.key}
+                        checked={isSelected}
+                        onChange={() => setCategoryKey(cat.key)}
+                        className="sr-only"
+                      />
+                      <span
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: bg, color: fg }}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-3">
+                          <span className="font-bold text-slate-900">{cat.label}</span>
+                          {severityPill(cat.severity)}
+                        </span>
+                        <span className="mt-0.5 block text-sm leading-relaxed text-slate-600">
+                          {cat.description}
+                        </span>
+                      </span>
+                      <span
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                          isSelected
+                            ? "border-club bg-club text-white"
+                            : "border-slate-300 bg-white"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3.5 w-3.5" />}
+                      </span>
+                    </label>
+                  );
+                })}
+
+                {/* Option "Autre" */}
+                <div
+                  className={`rounded-2xl border-2 p-4 transition ${
+                    categoryKey === "__AUTRE__"
+                      ? "border-club bg-club-softer"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <label className="flex cursor-pointer items-center gap-4">
                     <input
                       type="radio"
                       name="category"
-                      value={cat.key}
-                      checked={isSelected}
-                      onChange={() => setCategoryKey(cat.key)}
+                      value="__AUTRE__"
+                      checked={categoryKey === "__AUTRE__"}
+                      onChange={() => setCategoryKey("__AUTRE__")}
                       className="sr-only"
                     />
-                    <span
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
-                        isSelected ? "text-white" : "bg-slate-100 text-slate-500"
-                      }`}
-                      style={isSelected ? { backgroundColor: "var(--club-primary)" } : undefined}
-                    >
-                      <Icon className="h-5 w-5" />
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                      <FileIcon className="h-5 w-5" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center justify-between gap-3">
-                        <span className="font-semibold text-slate-900">{cat.label}</span>
-                        {severityPill(cat.severity)}
-                      </span>
-                      <span className="mt-1 block text-sm leading-relaxed text-slate-600">
-                        {cat.description}
+                      <span className="font-bold text-slate-900">Autre situation</span>
+                      <span className="mt-0.5 block text-sm leading-relaxed text-slate-600">
+                        Aucune catégorie ne correspond&nbsp;? Précise en quelques mots.
                       </span>
                     </span>
                     <span
-                      className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition ${
-                        isSelected ? "border-club bg-club text-white" : "border-slate-300 bg-white"
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                        categoryKey === "__AUTRE__"
+                          ? "border-club bg-club text-white"
+                          : "border-slate-300 bg-white"
                       }`}
                     >
-                      {isSelected && <Check className="h-3 w-3" />}
+                      {categoryKey === "__AUTRE__" && <Check className="h-3.5 w-3.5" />}
                     </span>
                   </label>
-                );
-              })}
+                  {categoryKey === "__AUTRE__" && (
+                    <div className="animate-fade-up mt-4">
+                      <label
+                        htmlFor="customCategory"
+                        className="mb-1.5 block text-sm font-semibold text-slate-700"
+                      >
+                        Nature des faits
+                      </label>
+                      <input
+                        id="customCategory"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        maxLength={100}
+                        className={inputCls}
+                        placeholder="Ex. : menaces, pressions, propos dégradants…"
+                      />
+                      <p className="mt-1 text-xs text-slate-400">
+                        {customCategory.length}/100 caractères
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <label className="mt-6 flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <label className="mt-6 flex cursor-pointer items-center gap-4 rounded-2xl border-2 border-dashed border-slate-300 p-4 transition hover:border-slate-400">
               <input
                 type="checkbox"
                 checked={isMinorVictim}
                 onChange={(e) => setIsMinorVictim(e.target.checked)}
-                className="mt-0.5 h-5 w-5 accent-club"
+                className="h-5 w-5 accent-club"
               />
               <span className="text-sm text-slate-700">
-                La victime est-elle <b>mineure</b> ? (cette information déclenche une
-                procédure renforcée et prioritaire)
+                La victime est-elle <b>mineure</b>&nbsp;? (procédure renforcée et prioritaire)
               </span>
             </label>
 
             {anonymity === "CONFIDENTIEL" ? (
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="reporterName" className="mb-1 block text-sm font-medium text-slate-700">
-                    Votre nom
+                  <label htmlFor="reporterName" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Ton nom
                   </label>
                   <input
                     id="reporterName"
                     value={reporterName}
                     onChange={(e) => setReporterName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className={inputCls}
                     placeholder="Prénom Nom"
                   />
                 </div>
                 <div>
-                  <label htmlFor="reporterContact" className="mb-1 block text-sm font-medium text-slate-700">
+                  <label htmlFor="reporterContact" className="mb-1.5 block text-sm font-semibold text-slate-700">
                     Contact (email ou téléphone)
                   </label>
                   <input
                     id="reporterContact"
                     value={reporterContact}
                     onChange={(e) => setReporterContact(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                    placeholder="Laissez un moyen de vous joindre"
+                    className={inputCls}
+                    placeholder="Un moyen de te joindre"
                   />
                 </div>
               </div>
             ) : (
-              <div className="mt-6 hidden">
+              <div className="hidden">
                 <input value={reporterName} onChange={(e) => setReporterName(e.target.value)} />
                 <input value={reporterContact} onChange={(e) => setReporterContact(e.target.value)} />
               </div>
@@ -516,14 +676,14 @@ export function ReportForm({
 
             {requireTeamInfo && (
               <div className="mt-4">
-                <label htmlFor="teamCategory" className="mb-1 block text-sm font-medium text-slate-700">
+                <label htmlFor="teamCategory" className="mb-1.5 block text-sm font-semibold text-slate-700">
                   Équipe / catégorie concernée
                 </label>
                 <input
                   id="teamCategory"
                   value={teamCategory}
                   onChange={(e) => setTeamCategory(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  className={inputCls}
                   placeholder="Ex. : U15, Équipe féminine senior…"
                 />
               </div>
@@ -531,29 +691,32 @@ export function ReportForm({
           </div>
         )}
 
+        {/* ===== ÉTAPE 3 : RÉCIT ===== */}
         {step === 2 && (
-          <div className="animate-fade-up">
-            <h2 className="text-lg font-bold text-slate-900">Racontez les faits</h2>
-            <p className="mt-1 text-sm text-slate-600">
-              Décrivez le déroulement précisément. Guidez-vous avec : <b>Où ?</b>{" "}
-              <b>Quand ?</b> <b>Que s&apos;est-il passé ?</b>
+          <div key="step-2" className="animate-slide-in">
+            <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900">
+              Raconte ce que tu as vécu
+            </h2>
+            <p className="mt-2 text-center text-sm text-slate-500">
+              Guide-toi avec&nbsp;: <b>Où&nbsp;?</b> <b>Quand&nbsp;?</b>{" "}
+              <b>Que s&apos;est-il passé&nbsp;?</b>
             </p>
 
-            <div className="relative mt-4">
+            <div className="relative mt-8">
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={7}
                 maxLength={8000}
                 placeholder="Ex. : Le samedi 12 à l'entraînement U15 au gymnase municipal, l'éducateur a tenu des propos humiliants envers un joueur devant tout le groupe, puis…"
-                className={`w-full rounded-xl border px-3.5 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 ${
+                className={`w-full resize-none rounded-2xl border-2 px-4 py-4 text-sm leading-relaxed transition focus:outline-none focus:ring-2 ${
                   description.trim().length >= 40
-                    ? "border-emerald-300 focus:border-emerald-500 focus:ring-emerald-100"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
+                    ? "border-emerald-300 bg-emerald-50/40 focus:border-emerald-500 focus:ring-emerald-100"
+                    : "border-slate-200 bg-slate-50/60 focus:border-club focus:bg-white focus:ring-club/20"
                 }`}
               />
               <span
-                className={`absolute right-3 bottom-3 rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+                className={`absolute right-3 bottom-3 rounded-lg px-2 py-1 text-[11px] font-bold tabular-nums ${
                   description.trim().length >= 40
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-slate-100 text-slate-400"
@@ -561,7 +724,7 @@ export function ReportForm({
               >
                 {description.trim().length}/40
               </span>
-              <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
                   className="h-full rounded-full transition-all duration-300"
                   style={{
@@ -574,43 +737,43 @@ export function ReportForm({
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="incidentDate" className="mb-1 block text-sm font-medium text-slate-700">
+                <label htmlFor="incidentDate" className="mb-1.5 block text-sm font-semibold text-slate-700">
                   Date des faits (si connue)
                 </label>
                 <div className="relative">
-                  <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <CalendarDays className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     id="incidentDate"
                     type="date"
                     value={incidentDate}
                     onChange={(e) => setIncidentDate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className={`${inputCls} pl-10`}
                   />
                 </div>
               </div>
               <div>
-                <label htmlFor="locationDetail" className="mb-1 block text-sm font-medium text-slate-700">
+                <label htmlFor="locationDetail" className="mb-1.5 block text-sm font-semibold text-slate-700">
                   Lieu des faits
                 </label>
                 <div className="relative">
-                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     id="locationDetail"
                     value={locationDetail}
                     onChange={(e) => setLocationDetail(e.target.value)}
-                    className="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    className={`${inputCls} pl-10`}
                     placeholder="Vestiaires, parking, terrain d'honneur…"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="mt-6">
-              <p className="text-sm font-medium text-slate-700">
-                Pièces jointes (photos, captures, audios… facultatif)
+            <div className="mt-8">
+              <p className="text-sm font-bold text-slate-900">
+                Pièces jointes <span className="font-normal text-slate-400">(facultatif)</span>
               </p>
               <p className="mt-0.5 text-xs text-slate-500">
-                Stockées de façon sécurisée et confidentielle (5 max., 15 Mo par fichier).
+                Photos, captures, audios… 5 max., 15 Mo par fichier.
               </p>
               <label
                 htmlFor="file-input"
@@ -620,23 +783,23 @@ export function ReportForm({
                 }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={onDrop}
-                className={`mt-3 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-7 text-sm transition ${
+                className={`mt-3 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-8 text-sm transition ${
                   dragOver
                     ? "border-club bg-club-softer"
-                    : "border-slate-300 bg-slate-50 text-slate-600 hover:border-club hover:bg-club-softer"
+                    : "border-slate-300 bg-slate-50/60 text-slate-600 hover:border-club hover:bg-club-softer"
                 }`}
               >
                 <span
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-sm"
+                  className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg"
                   style={{ backgroundColor: "var(--club-primary)" }}
                 >
                   <Upload className="h-5 w-5" />
                 </span>
-                <span className="font-semibold text-slate-800">
+                <span className="font-bold text-slate-800">
                   {files.length > 0 ? `${files.length} fichier${files.length > 1 ? "s" : ""} sélectionné${files.length > 1 ? "s" : ""}` : "Ajouter des fichiers"}
                 </span>
                 <span className="text-xs text-slate-500">
-                  Cliquez pour parcourir ou glissez-déposez vos fichiers ici
+                  Cliquez ou glissez-déposez vos fichiers ici
                 </span>
                 <input
                   id="file-input"
@@ -656,13 +819,11 @@ export function ReportForm({
                         key={`${f.name}-${i}`}
                         className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
                       >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                           <Icon className="h-4 w-4" />
                         </span>
-                        <span className="min-w-0 flex-1 truncate text-slate-700">{f.name}</span>
-                        <span className="shrink-0 text-xs text-slate-400">
-                          {formatFileSize(f.size)}
-                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{f.name}</span>
+                        <span className="shrink-0 text-xs text-slate-400">{formatFileSize(f.size)}</span>
                         <button
                           type="button"
                           onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
@@ -678,20 +839,18 @@ export function ReportForm({
               )}
             </div>
 
-            <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <div className="mt-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-amber-900">
               <LockKeyhole className="mt-0.5 h-5 w-5 shrink-0" />
               <p>
-                <b>Bon à savoir :</b> votre signalement est horodaté et votre club a
-                l&apos;obligation d&apos;y répondre dans un délai maximal de 7 jours. En cas
-                d&apos;urgence grave immédiate (danger en cours), appelez le <b>17</b> avant
-                de signaler ici.
+                <b>Bon à savoir :</b> le club doit répondre sous 7 jours. En cas de danger
+                immédiat, appelez le <b>17</b> avant de signaler ici.
               </p>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-5 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             {error}
           </div>
@@ -703,7 +862,7 @@ export function ReportForm({
             <button
               type="button"
               onClick={() => (step === 2 && error ? setStep(2) : setStep(step - 1))}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <ChevronLeft className="h-4 w-4" /> Retour
             </button>
@@ -717,7 +876,7 @@ export function ReportForm({
               disabled={!canNext}
               onClick={() => setStep(step + 1)}
               style={{ backgroundColor: canNext ? "var(--club-primary)" : undefined }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-300 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-slate-300 px-7 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             >
               Continuer <ChevronRight className="h-4 w-4" />
             </button>
@@ -727,7 +886,7 @@ export function ReportForm({
               disabled={!canNext || pending}
               onClick={handleSubmit}
               style={{ backgroundColor: "var(--club-primary)" }}
-              className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-xl px-7 py-3 text-sm font-bold text-white shadow-lg transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             >
               {pending ? "Transmission sécurisée…" : "Envoyer mon signalement"}
               {!pending && <ChevronRight className="h-4 w-4" />}

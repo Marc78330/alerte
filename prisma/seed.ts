@@ -16,7 +16,7 @@ async function main() {
       primaryColor: "#0284c7",
       alertEmails: "president@fc-etoile.fr",
       welcomeMessage:
-        "Ce canal est un espace d'écoute confidentiel. Si vous constatez un fait de violence, de harcèlement ou de discrimination, vous pouvez le signaler ici, même anonymement.",
+        "Le club s'engage contre les violences et le harcèlement. Si vous êtes victime, témoin ou proche, il est important de signaler : votre parole compte, et elle sera écoutée avec confidentialité.",
     },
     create: {
       name: "FC Étoile Sportive",
@@ -26,7 +26,7 @@ async function main() {
       primaryColor: "#0284c7",
       alertEmails: "president@fc-etoile.fr",
       welcomeMessage:
-        "Ce canal est un espace d'écoute confidentiel. Si vous constatez un fait de violence, de harcèlement ou de discrimination, vous pouvez le signaler ici, même anonymement.",
+        "Le club s'engage contre les violences et le harcèlement. Si vous êtes victime, témoin ou proche, il est important de signaler : votre parole compte, et elle sera écoutée avec confidentialité.",
     },
   });
 

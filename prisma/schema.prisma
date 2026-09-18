@@ -14,7 +14,7 @@ model Club {
   sport           String
   contactEmail    String
   primaryColor    String          @default("#2563eb")
-  welcomeMessage  String          @default("Ce canal vous permet d'alerter le club en toute confidentialité si vous êtes témoin ou victime de violence, de harcèlement ou de discrimination.")
+  welcomeMessage  String          @default("Le club s'engage contre les violences et le harcèlement. Si vous êtes victime, témoin ou proche, il est important de signaler : votre parole compte, et elle sera écoutée avec confidentialité.")
   allowAnonymous  Boolean         @default(true)
   requireTeamInfo Boolean         @default(false)
   alertEmails     String          @default("")

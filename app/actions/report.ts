@@ -17,12 +17,14 @@ export async function submitReportAction(formData: FormData): Promise<ReportSubm
   const isAnonymous = formData.get("isAnonymous") === "true";
   const isMinorVictim = formData.get("isMinorVictim") === "true";
   const allowClubOverride = formData.get("allowAnonymousFlag") === "false";
+  const rawCategory = String(formData.get("categoryKey") ?? "");
+  const customCategory = String(formData.get("customCategory") ?? "").trim();
 
   const parsed = reportFormSchema.safeParse({
     clubId,
     isAnonymous,
     reporterRole: formData.get("reporterRole"),
-    categoryKey: formData.get("categoryKey"),
+    categoryKey: rawCategory,
     isMinorVictim,
     reporterName: formData.get("reporterName") || null,
     reporterContact: formData.get("reporterContact") || null,
@@ -45,8 +47,46 @@ export async function submitReportAction(formData: FormData): Promise<ReportSubm
     return { ok: false, error: "Club introuvable." };
   }
 
+  // Catégorie "Autre situation" : on crée (ou réutilise) une catégorie AUTRE
+  // avec le libellé libre du déclarant.
+  let categoryKey = parsed.data.categoryKey;
+  if (rawCategory === "__AUTRE__") {
+    if (customCategory.length < 3) {
+      return { ok: false, error: "Merci de préciser la nature des faits." };
+    }
+    if (customCategory.length > 100) {
+      return { ok: false, error: "Nature des faits limitée à 100 caractères." };
+    }
+    const existing = await prisma.clubCategory.findUnique({
+      where: { clubId_key: { clubId: club.id, key: "AUTRE" } },
+    });
+    if (existing) {
+      await prisma.clubCategory.update({
+        where: { id: existing.id },
+        data: {
+          label: customCategory,
+          description: "Catégorie libre définie par le déclarant.",
+          isEnabled: true,
+          severity: 1,
+        },
+      });
+    } else {
+      await prisma.clubCategory.create({
+        data: {
+          clubId: club.id,
+          key: "AUTRE",
+          label: customCategory,
+          description: "Catégorie libre définie par le déclarant.",
+          severity: 1,
+          sortOrder: 99,
+        },
+      });
+    }
+    categoryKey = "AUTRE";
+  }
+
   const category = await prisma.clubCategory.findUnique({
-    where: { clubId_key: { clubId: club.id, key: parsed.data.categoryKey } },
+    where: { clubId_key: { clubId: club.id, key: categoryKey } },
   });
   if (!category || !category.isEnabled) {
     return { ok: false, error: "Cette catégorie n'est pas disponible pour ce club." };
