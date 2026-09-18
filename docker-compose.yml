@@ -3,29 +3,38 @@ services:
     image: ghcr.io/marc78330/alerte:main
     container_name: clubsafe
     restart: unless-stopped
+    # Port exposé sur localhost uniquement (accès direct/débogage).
+    # Le trafic public passe par Nginx Proxy Manager (réseau ci-dessous).
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: production
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
       # Chemin SQLite stocké sur le volume persistant
       DATABASE_URL: "file:/data/clubsafe.db"
-      # ⚠️ À remplacer par une valeur longue et aléatoire (ex: openssl rand -hex 32)
-      SESSION_SECRET: "remplace-moi-par-un-secret-long-et-aleatoire"
-      # URL publique du service (utilisée pour le routage des domaines custom)
-      APP_URL: "http://localhost:3000"
+      SESSION_SECRET: "60cc6bf4b5f640ab9dc13ec99961181ecfa10062a0547bbf664cf013780b6330"
+      # ⚠️ URL PUBLIQUE définitive du service (derrière NPM) : ex. https://clubsafe.exemple.fr
+      APP_URL: "https://clubsafe.exemple.fr"
       # Met "false" après la première installation
       SEED_ON_START: "true"
     volumes:
       - clubsafe-data:/data
       - clubsafe-storage:/app/storage
+    networks:
+      # Réseau partagé avec Nginx Proxy Manager pour qu'il joigne le conteneur
+      # via son nom `clubsafe` sur le port 3000.
+      - proxy_default
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 20s
+
+networks:
+  proxy_default:
+    external: true
 
 volumes:
   clubsafe-data:
