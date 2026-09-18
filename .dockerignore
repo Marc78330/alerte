@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env*.local
+storage
+prisma/dev.db
+prisma/dev.db-journal
+tsconfig.tsbuildinfo
+next-env.d.ts
+*.log
+.DS_Store
+test_*.mjs
+README.md
+docker-compose.yml
