@@ -5,9 +5,13 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="file:/data/clubsafe.db"
 
+# OpenSSL requis par Prisma
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies (including dev deps for build)
+# --ignore-scripts : le postinstall (prisma generate) est exécuté après le COPY du schéma
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Copy source
 COPY . .
@@ -24,6 +28,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+
+# OpenSSL requis par Prisma
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 
 # Copy full node_modules (keeps prisma CLI available for `db push` at startup)
 COPY --from=builder /app/node_modules ./node_modules

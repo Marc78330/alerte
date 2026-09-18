@@ -19,7 +19,6 @@ services:
       # Met "false" après la première installation
       SEED_ON_START: "true"
     volumes:
-      - clubsafe-data:/data
       - clubsafe-storage:/app/storage
     networks:
       # Réseau partagé avec Nginx Proxy Manager pour qu'il joigne le conteneur
@@ -37,7 +36,5 @@ networks:
     external: true
 
 volumes:
-  clubsafe-data:
-    name: clubsafe-data
   clubsafe-storage:
     name: clubsafe-storage
