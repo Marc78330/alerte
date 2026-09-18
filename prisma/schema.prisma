@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Club {
+  id              String          @id @default(cuid())
+  name            String
+  slug            String          @unique
+  sport           String
+  contactEmail    String
+  primaryColor    String          @default("#2563eb")
+  welcomeMessage  String          @default("Ce canal vous permet d'alerter le club en toute confidentialité si vous êtes témoin ou victime de violence, de harcèlement ou de discrimination.")
+  allowAnonymous  Boolean         @default(true)
+  requireTeamInfo Boolean         @default(false)
+  alertEmails     String          @default("")
+  logoFileName    String?
+  landingTitle    String?
+  landingSubtitle String?
+  landingBanner   String?
+  footerMentions  String?
+  posterStyle     String          @default("SPORT")
+  customDomain    String?         @unique
+  isActive        Boolean         @default(true)
+  categories      ClubCategory[]
+  users           User[]
+  reports         Report[]
+  createdAt       DateTime        @default(now())
+}
+
+model ClubCategory {
+  id          String   @id @default(cuid())
+  clubId      String
+  club        Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  key         String
+  label       String
+  description String
+  severity    Int      @default(1)
+  isEnabled   Boolean  @default(true)
+  sortOrder   Int      @default(0)
+
+  @@unique([clubId, key])
+  @@index([clubId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String   @default("ADMIN")
+  clubId       String
+  club         Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([clubId])
+}
+
+model Report {
+  id             String           @id @default(cuid())
+  clubId         String
+  club           Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  trackingToken  String           @unique
+  categoryKey    String
+  isMinorVictim  Boolean          @default(false)
+  isAnonymous    Boolean          @default(true)
+  reporterRole   String
+  reporterName   String?
+  reporterContact String?
+  teamCategory   String?
+  description    String
+  locationDetail String?
+  incidentDate   DateTime?
+  status         String           @default("NOUVEAU")
+  severityLevel  Int              @default(1)
+  messages       ReportMessage[]
+  attachments    Attachment[]
+  auditLogs      AuditLog[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([clubId])
+}
+
+model ReportMessage {
+  id         String   @id @default(cuid())
+  reportId   String
+  report     Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  senderType String
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([reportId])
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  reportId     String
+  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  filePath     String
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  @@index([reportId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  action    String
+  actor     String
+  details   String?
+  timestamp DateTime @default(now())
+
+  @@index([reportId])
+}
